@@ -1,21 +1,38 @@
 import random
 import sys
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-CAUSES = ["timeout", "http_500", "invalid_json"]
-STEPS = ["step_1", "step_2", "step_3"]
+ENDPOINTS = [
+    "https://api.example.com/recs",
+    "https://api.example.com/profile",
+    "https://api.example.com/offers",
+]
+COUNTRIES = ["US", "CA", "GB", "DE", "FR"]
+now = datetime.now(timezone.utc)
 
-for _ in range(200):
-    step = random.choice(STEPS)
-    failed = random.random() < (0.25 if step == "step_2" else 0.03)
+
+def send(endpoint, country, when):
     httpx.post(f"{BASE}/events", json={
         "canvas_id": "demo-canvas",
-        "step_id": step,
+        "step_id": f"step_{random.randint(1, 3)}",
         "user_id": f"user_{random.randint(1, 500)}",
-        "status": "error" if failed else "success",
-        "cause": random.choice(CAUSES) if failed else None,
+        "endpoint": endpoint,
+        "payload": {"country": country, "plan": random.choice(["free", "pro"])},
+        "occurred_at": when.isoformat(),
     }).raise_for_status()
+
+
+# Background noise: 100 scattered failures over the previous ~23 hours.
+for _ in range(100):
+    when = now - timedelta(minutes=random.randint(60, 1440))
+    send(random.choice(ENDPOINTS), random.choice(COUNTRIES), when)
+
+# The incident: 40 failures in the last 30 minutes, all on /offers, ~90% from DE.
+for _ in range(40):
+    country = "DE" if random.random() < 0.9 else random.choice(COUNTRIES)
+    send(ENDPOINTS[2], country, now - timedelta(minutes=random.randint(0, 30)))
 
 print("done")

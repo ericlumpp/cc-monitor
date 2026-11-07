@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EventIn(BaseModel):
     canvas_id: str
     step_id: str
     user_id: str
-    status: Literal["success", "error"]
-    cause: str | None = None
+    endpoint: str
+    payload: dict = Field(default_factory=dict)
     occurred_at: datetime | None = None
