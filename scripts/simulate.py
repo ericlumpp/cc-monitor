@@ -15,14 +15,16 @@ now = datetime.now(timezone.utc)
 
 
 def send(endpoint, country, when):
-    httpx.post(f"{BASE}/events", json={
+    body = {
         "canvas_id": "demo-canvas",
         "step_id": f"step_{random.randint(1, 3)}",
         "user_id": f"user_{random.randint(1, 500)}",
         "endpoint": endpoint,
         "payload": {"country": country, "plan": random.choice(["free", "pro"])},
         "occurred_at": when.isoformat(),
-    }).raise_for_status()
+    }
+    for _ in range(2):  # Braze sends every failure twice
+        httpx.post(f"{BASE}/events", json=body).raise_for_status()
 
 
 # Background noise: 100 scattered failures over the previous ~23 hours.
