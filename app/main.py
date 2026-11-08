@@ -8,6 +8,7 @@ from app import models
 from app.anomaly import find_anomalies
 from app.db import Base, engine, get_db
 from app.schemas import EventIn
+from app.auth import require_api_key
 
 MAX_PAYLOAD_CHARS = 4000
 DEDUPE_SECONDS = 30
@@ -29,7 +30,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/events", status_code=201)
+@app.post("/events", status_code=201, dependencies=[Depends(require_api_key)])
 def create_event(event: EventIn, response: Response, db: Session = Depends(get_db)):
     if len(json.dumps(event.payload)) > MAX_PAYLOAD_CHARS:
         raise HTTPException(413, "payload too large")
@@ -62,13 +63,13 @@ def create_event(event: EventIn, response: Response, db: Session = Depends(get_d
     return {"id": row.id}
 
 
-@app.get("/stats/daily")
+@app.get("/stats/daily", dependencies=[Depends(require_api_key)])
 def daily_stats(days: int = Query(7, ge=1, le=90), db: Session = Depends(get_db)):
     rows = db.execute(DAILY_SQL, {"days": days}).all()
     return [{"day": str(r.day), "endpoint": r.endpoint, "failures": r.failures} for r in rows]
 
 
-@app.get("/failures")
+@app.get("/failures", dependencies=[Depends(require_api_key)])
 def failures(
     endpoint: str,
     hours: int = Query(24, ge=1, le=168),
@@ -93,6 +94,7 @@ def failures(
     ]
 
 
-@app.get("/anomalies")
+@app.get("/anomalies", dependencies=[Depends(require_api_key)])
 def anomalies(db: Session = Depends(get_db)):
     return find_anomalies(db)
+

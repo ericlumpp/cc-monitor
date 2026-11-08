@@ -1,3 +1,4 @@
+import os
 import random
 import sys
 from datetime import datetime, timedelta, timezone
@@ -5,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+KEY = os.environ["CC_MONITOR_API_KEY"]
+HEADERS = {"Authorization": f"Bearer {KEY}"}
 ENDPOINTS = [
     "https://api.example.com/recs",
     "https://api.example.com/profile",
@@ -24,7 +27,7 @@ def send(endpoint, country, when):
         "occurred_at": when.isoformat(),
     }
     for _ in range(2):  # Braze sends every failure twice
-        httpx.post(f"{BASE}/events", json=body).raise_for_status()
+        httpx.post(f"{BASE}/events", json=body, headers=HEADERS).raise_for_status()
 
 
 # Background noise: 100 scattered failures over the previous ~23 hours.
